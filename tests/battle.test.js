@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createBattle, moveUnit, performAction, mergeOptions, mergeRobots, endTurn, aliveUnits, getUnit, movesFor } from '../src/game/battle.js';
+import { createBattle, moveUnit, performAction, mergeOptions, combinePartners, mergeRobots, endTurn, aliveUnits, getUnit, movesFor } from '../src/game/battle.js';
 import { runEnemyTurn } from '../src/game/ai.js';
 import { hasLineOfSight, baseDamage } from '../src/game/combat.js';
 import { GROUND, EMPTY, CRATE, posKey } from '../src/game/terrain.js';
@@ -96,6 +96,14 @@ test('adjacent compatible robots combine into a super robot', () => {
   assert.equal(sky.name, 'Sky Racer');
   assert.equal(aliveUnits(s, 'player').length, 2);
   assert.ok(sky.acted, 'combining uses the action');
+});
+
+test('combine partners are listed even when far away', () => {
+  const s = setup([bp('racer'), bp('beast'), bp('jet')], [bp('beast')]);
+  const [car, , jet] = s.units;
+  jet.x = car.x + 4;
+  assert.deepEqual(mergeOptions(s, car.id), []);
+  assert.deepEqual(combinePartners(s, car.id), [{ id: jet.id, name: jet.name, recipe: 'Sky Racer', near: false }]);
 });
 
 test('storm ultimates hit every enemy in range', () => {

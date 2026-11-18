@@ -13,7 +13,7 @@ On iPad, open the link in Safari and choose **Share → Add to Home Screen** to 
 - **🔧 Garage.** Build up to 4 robots from parts: 5 heads, 5 bodies, 9 arm weapons (choose one for each arm), 5 kinds of legs, and 8 colors. Every part changes the robot's stats and gives it attacks or skills. Matching weapons on both arms become a *Double* attack.
 - **🧱 Power Test.** Find out how strong your robot is. Smash a Brick Wall, Steel Wall, or Titanium Vault in 6 turns and earn up to 3 stars. Weapons that pierce armor work best on the hard walls.
 - **⚔️ Battle.** Turn-based tactics on a side-view battlefield, in the style of Heroes 3 or XCOM. A new level is generated randomly every time, with Easy, Normal, and Hard modes. Robots walk, **climb**, **jump** over gaps, and **fall** down ledges, and each type of legs is good at different moves. Avoid the spikes and blow up crates so enemies fall off them.
-- **🤝 Combine.** Two compatible robots standing next to each other can merge into a **super robot**. It gets more HP and every weapon from both robots, plus an ultimate attack. Not every pair matches:
+- **🤝 Combine.** Two compatible robots standing next to each other can merge into a **super robot**. In battle, the selected robot shows a gold line to every friend it can combine with; walk it onto a glowing 🤝 square next to that friend and tap **🤝 Combine!** It gets more HP and every weapon from both robots, plus an ultimate attack. Not every pair matches:
 
 | Cores | Super robot |
 |-------|-------------|

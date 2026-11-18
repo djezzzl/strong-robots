@@ -108,6 +108,7 @@ h2 { font-size: 20px; color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { background: var(--panel2); padding: 4px 10px; border-radius: 999px; font-size: 15px; }
 .combine-hint { color: var(--gold); font-weight: 700; }
+.combine-hint small, .combine-box small { display: block; color: var(--text); opacity: 0.85; font-weight: 600; font-size: 14px; margin-top: 4px; }
 
 /* Setup */
 .setup { align-items: stretch; }
@@ -143,7 +144,10 @@ h2 { font-size: 20px; color: var(--muted); }
 .action small { color: var(--muted); font-size: 13px; }
 .action.active { border-color: var(--gold); background: #3a4f8f; }
 .action.ultimate { border-color: rgba(255, 213, 79, 0.6); background: linear-gradient(#5d4a00, #3a2f00); }
-.action.combine { border-color: var(--gold); animation: pulse 1s infinite alternate; }
+.action.combine { border-color: var(--gold); }
+.action.combine.ready { background: linear-gradient(#7a5f00, #4a3a00); animation: pulse 1s infinite alternate; }
+.action.combine.far { border-style: dashed; }
+.action.combine small { color: var(--gold); }
 .action:disabled { opacity: 0.35; }
 .hint { color: var(--muted); font-size: 16px; flex-basis: 100%; }
 .battle-panel .hint { flex-basis: auto; flex: 1; min-width: 200px; }

@@ -3,9 +3,9 @@ import { h, button, robotPicture } from './dom.js';
 import { BattleView } from '../render/battle-view.js';
 import { sfx } from '../render/sfx.js';
 import { LEGS } from '../data/parts.js';
-import { createBattle, getUnit, aliveUnits, movesFor, moveUnit, performAction, mergeOptions, mergeRobots, endTurn, canUse } from '../game/battle.js';
+import { createBattle, getUnit, aliveUnits, movesFor, moveUnit, performAction, mergeOptions, combinePartners, mergeRobots, endTurn, canUse } from '../game/battle.js';
 import { runEnemyTurn } from '../game/ai.js';
-import { targetsFor, stormVictims, isSelfAction } from '../game/combat.js';
+import { targetsFor, stormVictims, isSelfAction, dist } from '../game/combat.js';
 import { posKey, cellAt, CRATE } from '../game/terrain.js';
 
 export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
@@ -26,7 +26,8 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
 
   let selected = aliveUnits(state, 'player')[0]?.id || null;
   let pending = null;
-  let hint = 'Tap a blue square to move, then pick an attack!';
+  const canCombine = aliveUnits(state, 'player').some((u) => combinePartners(state, u.id).length);
+  let hint = canCombine ? 'Tip: 🤝 robots can COMBINE! Walk them next to each other.' : 'Tap a blue square to move, then pick an attack!';
 
   const ui = { state, view, get selected() { return selected; }, get pending() { return pending; } };
   globalThis.__game = { ...(globalThis.__game || {}), screen: 'battle', battle: ui };
@@ -34,11 +35,13 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
   const myTurn = () => state.team === 'player' && !state.winner && !view.busy;
 
   function updateOverlay() {
-    const o = { moves: [], targets: [], cells: [], heals: [], merges: [], selected };
+    const o = { moves: [], targets: [], cells: [], heals: [], merges: [], partners: [], combineSpots: [], selected };
     const unit = getUnit(state, selected);
     if (unit && unit.team === 'player' && myTurn()) {
+      o.partners = combinePartners(state, unit.id).map((p) => ({ ...p, unit: getUnit(state, p.id) }));
       if (!pending) {
         for (const n of movesFor(state, unit.id).values()) if (n.x !== unit.x || n.y !== unit.y) o.moves.push(n);
+        o.combineSpots = o.moves.filter((m) => o.partners.some((p) => !p.near && dist(m, p.unit) <= 1));
       } else if (pending === 'merge') {
         o.merges = mergeOptions(state, unit.id).map((id) => getUnit(state, id));
       } else {
@@ -65,6 +68,7 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
     if (!unit || unit.hp <= 0) { panel.replaceChildren(); return; }
     const mine = unit.team === 'player';
     const merges = mine ? mergeOptions(state, unit.id) : [];
+    const partners = mine ? combinePartners(state, unit.id) : [];
     const status = mine ? (unit.acted ? '✅ Done' : unit.moved ? '👟 Moved' : '🟢 Ready') : '👾 Enemy';
     panel.replaceChildren(
       h('div', { class: 'unit-info' },
@@ -74,6 +78,10 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
           h('div', { class: 'hp' }, h('div', { style: `width:${(unit.hp / unit.maxHp) * 100}%` }), h('span', {}, `${unit.hp}/${unit.maxHp}`)),
           h('small', {}, `🛡️${unit.armor} 👟${unit.move} ${LEGS[unit.legsId]?.name || ''} · ${status}`))),
       mine ? h('div', { class: 'actions' },
+        partners.length ? h('button', {
+          class: `action combine ${merges.length ? 'ready' : 'far'} ${pending === 'merge' ? 'active' : ''}`, 'data-attack': 'merge', disabled: !myTurn(),
+          onclick: () => chooseCombine(unit, partners),
+        }, h('span', { class: 'icon' }, '🤝'), h('span', {}, 'Combine!'), h('small', {}, merges.length ? `→ ${partners.find((p) => p.near).recipe}` : 'get closer')) : null,
         unit.attacks.map((atk) => {
           const cd = unit.cooldowns[atk.id] || 0;
           const ok = myTurn() && attackAvailable(unit, atk);
@@ -82,11 +90,7 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
             'data-attack': atk.id, disabled: !ok,
             onclick: () => chooseAttack(unit, atk),
           }, h('span', { class: 'icon' }, atk.icon), h('span', {}, atk.name), cd > 0 ? h('small', {}, `⏳${cd}`) : atk.dmg ? h('small', {}, `💥${atk.dmg}`) : null);
-        }),
-        merges.length ? h('button', {
-          class: `action combine ${pending === 'merge' ? 'active' : ''}`, 'data-attack': 'merge', disabled: !myTurn(),
-          onclick: () => { sfx.click(); pending = pending === 'merge' ? null : 'merge'; hint = 'Tap a glowing friend to COMBINE!'; refresh(); },
-        }, h('span', { class: 'icon' }, '🤝'), h('span', {}, 'Combine!')) : null) : h('div', { class: 'hint' }, 'Enemy robot — tap one of your robots to command it.'));
+        })) : h('div', { class: 'hint' }, 'Enemy robot — tap one of your robots to command it.'));
   }
 
   function refresh() {
@@ -124,6 +128,23 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
     }
   }
 
+  function chooseCombine(unit, partners) {
+    if (!myTurn()) return;
+    sfx.click();
+    if (!mergeOptions(state, unit.id).length) {
+      const p = partners[0];
+      hint = unit.moved
+        ? `${unit.name} must stand right next to ${p.name} to become ${p.recipe}. Try next turn!`
+        : `Walk onto a 🤝 square next to ${p.name}, then tap Combine to make ${p.recipe}!`;
+      pending = null;
+      refresh();
+      return;
+    }
+    pending = pending === 'merge' ? null : 'merge';
+    hint = 'Tap a glowing 🤝 friend to COMBINE!';
+    refresh();
+  }
+
   function chooseAttack(unit, atk) {
     if (!myTurn()) return;
     sfx.click();
@@ -133,6 +154,8 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
     hint = atk.type === 'heal' ? 'Tap a friend to repair.' : 'Tap a red target (or a crate) to attack!';
     refresh();
   }
+
+  const nextToPartner = (unit, cell) => combinePartners(state, unit.id).some((p) => dist(getUnit(state, p.id), cell) <= 1);
 
   function onTap(ev) {
     ev.preventDefault();
@@ -167,7 +190,7 @@ export function battleScreen(app, { robots, difficulty, seed = Date.now() }) {
       return;
     }
     if (cur && cur.team === 'player' && movesFor(state, cur.id).has(posKey(cell.x, cell.y))) {
-      hint = 'Now pick an attack, or Guard.';
+      hint = nextToPartner(cur, cell) ? 'Next to a friend! Tap 🤝 Combine to make a SUPER ROBOT!' : 'Now pick an attack, or Guard.';
       play(moveUnit(state, cur.id, cell.x, cell.y));
       return;
     }

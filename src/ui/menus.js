@@ -79,7 +79,9 @@ export function battleSetupScreen(app) {
       h('header', { class: 'topbar' }, button('⬅ Menu', () => app.go('menu'), { class: 'small' }), h('h1', {}, '⚔️ Battle'), h('div', { class: 'spacer' })),
       h('h2', {}, `1. Pick your team (up to 3) — ${selected.length} chosen`),
       robotPicker(app, selected, 3, render),
-      h('div', { class: 'combine-box' }, hints.length ? hints.map((t) => h('div', {}, `✨ ${t}`)) : h('div', {}, 'Tip: some robots can COMBINE into super robots when standing next to each other!')),
+      h('div', { class: 'combine-box' }, hints.length
+        ? [...hints.map((t) => h('div', {}, `✨ ${t}`)), h('small', {}, 'In battle: walk them onto the 🤝 squares next to each other, then tap 🤝 Combine!')]
+        : h('div', {}, 'Tip: pick a Car + Jet, Beast + Titan or Tank + Titan team to COMBINE into a super robot!')),
       h('h2', {}, '2. Pick a level'),
       h('div', { class: 'choice-row' }, Object.entries(DIFFICULTY).map(([id, d]) => h('button', {
         class: `choice ${difficulty === id ? 'active' : ''} diff-${id}`, 'data-difficulty': id,

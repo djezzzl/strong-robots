@@ -16,7 +16,7 @@ export class BattleView {
     this.texts = [];
     this.banner = null;
     this.shakeAmp = 0;
-    this.overlay = { moves: [], targets: [], cells: [], merges: [], selected: null };
+    this.overlay = { moves: [], targets: [], cells: [], merges: [], partners: [], combineSpots: [], selected: null };
     this.busy = false;
     this.running = false;
   }
@@ -383,6 +383,44 @@ export class BattleView {
     for (const c of o.merges) ring(c, '#ffd54f');
   }
 
+  // Shows which friends the selected robot can combine with and where to stand to do it.
+  drawCombineGuide(ctx, t, pulse) {
+    const o = this.overlay;
+    const me = o.selected && this.actors.get(o.selected);
+    if (!me || !o.partners?.length) return;
+    ctx.font = '22px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const m of o.combineSpots || []) {
+      const c = this.center(m);
+      ctx.fillStyle = 'rgba(255,213,79,0.35)';
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(m.x * CELL + 4, m.y * CELL + 4, CELL - 8, CELL - 8, 10); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.fillText('🤝', c.x, c.y);
+    }
+    const from = this.center(me);
+    for (const p of o.partners) {
+      const a = this.actors.get(p.id);
+      if (!a) continue;
+      const to = this.center(a);
+      ctx.save();
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 4; ctx.globalAlpha = 0.5 + pulse * 0.5;
+      ctx.setLineDash([10, 8]); ctx.lineDashOffset = -t * 30;
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+      ctx.restore();
+      const by = (a.y + 1) * CELL - 58 * a.unit.scale * 1.08 - 42 + Math.sin(t * 5) * 3;
+      const label = `🤝 ${p.recipe}`;
+      ctx.font = 'bold 14px system-ui, sans-serif';
+      const w = ctx.measureText(label).width + 16;
+      ctx.fillStyle = 'rgba(40,30,0,0.85)'; ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(to.x - w / 2, by - 12, w, 24, 12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffd54f';
+      ctx.fillText(label, to.x, by + 1);
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+
   drawActors(ctx, t) {
     const list = [...this.actors.values()].sort((a, b) => a.y - b.y);
     for (const a of list) {
@@ -468,6 +506,7 @@ export class BattleView {
     this.drawTerrain(ctx, t);
     if (!this.busy) this.drawOverlay(ctx, t);
     this.drawActors(ctx, t);
+    if (!this.busy) this.drawCombineGuide(ctx, t, 0.5 + Math.sin(t * 6) * 0.2);
     this.drawEffects(ctx);
     ctx.textAlign = 'center';
     for (const tx of this.texts) {

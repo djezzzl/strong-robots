@@ -77,7 +77,7 @@ function drawBody(ctx, body, color) {
   const light = shade(color, 0.2);
   switch (body) {
     case 'racer':
-      ctx.beginPath(); ctx.moveTo(-26, -30); ctx.lineTo(26, -30); ctx.lineTo(24, -62); ctx.lineTo(-24, -66); ctx.closePath(); fillStroke(ctx, color);
+      ctx.beginPath(); ctx.moveTo(-26, -30); ctx.lineTo(26, -30); ctx.lineTo(24, -64); ctx.lineTo(-24, -64); ctx.closePath(); fillStroke(ctx, color);
       rr(ctx, -16, -60, 32, 12, 3); fillStroke(ctx, '#90caf9');
       for (const x of [-18, 14]) { rr(ctx, x, -40, 6, 5, 2); fillStroke(ctx, '#fff59d'); }
       rr(ctx, -6, -46, 12, 10, 2); fillStroke(ctx, dark);
@@ -111,27 +111,31 @@ function drawBody(ctx, body, color) {
   }
 }
 
-function drawHead(ctx, head, color, t) {
+// Heads are drawn facing the viewer; `look` nudges the eyes toward where the robot is heading.
+function drawHead(ctx, head, color, t, look) {
   const dark = shade(color, -0.3);
   ctx.save();
   ctx.translate(0, -70);
   switch (head) {
     case 'helm':
       ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-14, -16); ctx.quadraticCurveTo(0, -30, 14, -16); ctx.lineTo(14, 0); ctx.closePath(); fillStroke(ctx, METAL);
-      rr(ctx, -10, -12, 20, 5, 2); fillStroke(ctx, '#ff5252');
+      rr(ctx, -10 + look, -12, 20, 5, 2); fillStroke(ctx, '#ff5252');
       ctx.beginPath(); ctx.moveTo(-3, -24); ctx.lineTo(0, -34); ctx.lineTo(3, -24); ctx.closePath(); fillStroke(ctx, color);
       break;
     case 'radar':
       rr(ctx, -12, -16, 24, 16, 5); fillStroke(ctx, dark);
-      rr(ctx, -8, -12, 16, 5, 2); fillStroke(ctx, '#69f0ae');
+      rr(ctx, -8 + look, -12, 16, 5, 2); fillStroke(ctx, '#69f0ae');
       ctx.save(); ctx.translate(0, -18); ctx.scale(Math.cos(t * 3), 1);
       ctx.beginPath(); ctx.ellipse(0, -6, 14, 7, 0, Math.PI, 0); fillStroke(ctx, METAL);
       ctx.restore();
       break;
     case 'dragon':
-      ctx.beginPath(); ctx.moveTo(-12, 0); ctx.lineTo(-12, -18); ctx.lineTo(8, -20); ctx.lineTo(22, -10); ctx.lineTo(18, 0); ctx.closePath(); fillStroke(ctx, color);
-      for (const x of [-10, -2]) { ctx.beginPath(); ctx.moveTo(x, -18); ctx.lineTo(x - 6, -30); ctx.lineTo(x + 4, -19); ctx.closePath(); fillStroke(ctx, '#fff8e1'); }
-      ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(4, -12, 3, 0, Math.PI * 2); ctx.fill();
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 6, -18); ctx.lineTo(s * 16, -32); ctx.lineTo(s * 12, -16); ctx.closePath(); fillStroke(ctx, '#fff8e1'); }
+      ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(14, -20); ctx.lineTo(16, -8); ctx.lineTo(8, 0); ctx.lineTo(-8, 0); ctx.lineTo(-16, -8); ctx.closePath(); fillStroke(ctx, color);
+      ctx.fillStyle = '#ffeb3b';
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 10 + look, -14); ctx.lineTo(s * 3 + look, -12); ctx.lineTo(s * 9 + look, -9); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = OUTLINE;
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * 3, -4, 1.3, 0, Math.PI * 2); ctx.fill(); }
       break;
     case 'brain':
       rr(ctx, -12, -6, 24, 6, 2); fillStroke(ctx, dark);
@@ -140,17 +144,26 @@ function drawHead(ctx, head, color, t) {
       break;
     default:
       ctx.beginPath(); ctx.arc(0, -10, 13, 0, Math.PI * 2); fillStroke(ctx, METAL);
-      rr(ctx, -6, -15, 20, 7, 3); fillStroke(ctx, '#29b6f6');
+      rr(ctx, -10 + look, -15, 20, 7, 3); fillStroke(ctx, '#29b6f6');
   }
   ctx.restore();
 }
 
-function drawArm(ctx, arm, color, side, t) {
-  const dark = shade(color, side < 0 ? -0.35 : -0.2);
+// How far from the center each body's shoulders sit.
+const SHOULDER = { racer: 27, jet: 22, titan: 36, beast: 29, tank: 33 };
+
+// Arms hang at the robot's sides; weapons are drawn in a mirrored space so they always point outward.
+function drawArm(ctx, arm, color, body, side, t) {
+  const dark = shade(color, -0.25);
   ctx.save();
-  ctx.translate(side < 0 ? -20 : 20, -60);
-  rr(ctx, -6, -4, 12, 22, 5); fillStroke(ctx, dark);
-  ctx.translate(side < 0 ? 4 : 8, 18);
+  ctx.translate(side * (SHOULDER[body] || 25), -64);
+  ctx.scale(side, 1);
+  ctx.rotate(-0.3);
+  rr(ctx, -6, -2, 12, 24, 5); fillStroke(ctx, dark);
+  ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); fillStroke(ctx, METAL_DARK);
+  ctx.translate(0, 22);
+  ctx.rotate(0.75);
+  ctx.scale(0.85, 0.85);
   switch (arm) {
     case 'blaster': rr(ctx, -4, -6, 26, 10, 3); fillStroke(ctx, METAL_DARK); rr(ctx, 18, -4, 8, 6, 2); fillStroke(ctx, '#ef5350'); break;
     case 'lance': rr(ctx, -4, -4, 36, 6, 3); fillStroke(ctx, METAL); ctx.fillStyle = '#80d8ff'; ctx.fillRect(28, -3, 8, 4); break;
@@ -169,8 +182,9 @@ function drawArm(ctx, arm, color, side, t) {
       break;
     case 'hammer': rr(ctx, -2, -3, 22, 6, 2); fillStroke(ctx, '#8d6e63'); rr(ctx, 16, -12, 14, 24, 3); fillStroke(ctx, METAL_DARK); break;
     case 'shield':
-      ctx.beginPath(); ctx.moveTo(4, -18); ctx.lineTo(20, -14); ctx.lineTo(20, 6); ctx.lineTo(12, 16); ctx.lineTo(4, 6); ctx.closePath(); fillStroke(ctx, METAL);
-      ctx.beginPath(); ctx.moveTo(12, -10); ctx.lineTo(12, 8); ctx.stroke();
+      ctx.rotate(-0.75);
+      ctx.beginPath(); ctx.moveTo(-2, -16); ctx.lineTo(14, -12); ctx.lineTo(14, 8); ctx.lineTo(6, 18); ctx.lineTo(-2, 8); ctx.closePath(); fillStroke(ctx, METAL);
+      ctx.beginPath(); ctx.moveTo(6, -8); ctx.lineTo(6, 10); ctx.stroke();
       break;
     case 'repair': rr(ctx, -2, -3, 22, 6, 2); fillStroke(ctx, METAL); ctx.beginPath(); ctx.arc(22, 0, 7, 0.6, Math.PI * 2 - 0.6); ctx.lineWidth = 5; ctx.strokeStyle = '#66bb6a'; ctx.stroke(); break;
     default: break;
@@ -178,30 +192,31 @@ function drawArm(ctx, arm, color, side, t) {
   ctx.restore();
 }
 
-// opts: { size, facing, t, glow, alpha, flash, guard }
+// Robots face the viewer so both arms are always visible. `facing` only turns the eyes.
+// opts: { size, facing, t, glow, alpha, flash, secondary }
 export function drawRobot(ctx, x, y, bp, opts = {}) {
   const { size = 60, facing = 1, t = 0, glow = null, alpha = 1, flash = 0, secondary = null } = opts;
   const bob = bp.legs === 'jets' ? Math.sin(t * 4) * 3 - 6 : 0;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y + bob * (size / 100));
-  ctx.scale((size / 100) * facing, size / 100);
+  ctx.scale(size / 100, size / 100);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   if (flash > 0) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 50 * flash; } else if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 24; }
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = OUTLINE;
-  drawArm(ctx, bp.left, bp.color, -1, t);
   drawLegs(ctx, bp.legs, bp.color, t);
   drawBody(ctx, bp.body, bp.color);
+  ctx.shadowBlur = 0;
+  drawArm(ctx, bp.left, bp.color, bp.body, -1, t);
+  drawArm(ctx, bp.right, bp.color, bp.body, 1, t);
   if (secondary) {
     ctx.beginPath(); ctx.arc(0, -48, 9, 0, Math.PI * 2); ctx.lineWidth = 3;
     ctx.fillStyle = secondary; ctx.strokeStyle = '#ffd54f'; ctx.fill(); ctx.stroke();
     ctx.lineWidth = 2.5; ctx.strokeStyle = OUTLINE;
   }
-  drawHead(ctx, bp.head, bp.color, t);
-  ctx.shadowBlur = 0;
-  drawArm(ctx, bp.right, bp.color, 1, t);
+  drawHead(ctx, bp.head, bp.color, t, facing < 0 ? -2 : 2);
   ctx.restore();
 }
 

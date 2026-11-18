@@ -2,7 +2,7 @@
 import { h, robotPicture, robotStage, button } from './dom.js';
 import { SLOTS, COLORS, BODIES, HEADS, ARMS, LEGS } from '../data/parts.js';
 import { buildUnit, powerRating, normalizeBlueprint } from '../game/robot.js';
-import { partnersFor } from '../game/merge.js';
+import { partnersFor, recipeFor } from '../game/merge.js';
 import { MAX_ROBOTS } from '../save.js';
 import { sfx } from '../render/sfx.js';
 
@@ -27,6 +27,15 @@ export function randomBlueprint() {
   });
 }
 
+// Garage robots that can combine with robots[index], e.g. "Bolt → Sky Racer".
+function matchesInGarage(robots, index) {
+  const core = BODIES[robots[index].body].core;
+  return robots.flatMap((r, i) => {
+    const recipe = i !== index && recipeFor([core, BODIES[r.body].core]);
+    return recipe ? [`${r.name} → ${recipe.name}`] : [];
+  });
+}
+
 export function garageScreen(app, params = {}) {
   const { robots } = app.garage;
   let index = Math.min(params.index ?? 0, robots.length - 1);
@@ -45,6 +54,7 @@ export function garageScreen(app, params = {}) {
     const bp = current();
     const unit = buildUnit(bp);
     const core = BODIES[bp.body].core;
+    const matches = matchesInGarage(robots, index);
     root.replaceChildren(
       h('header', { class: 'topbar' },
         button('⬅ Menu', () => app.go('menu'), { class: 'small' }),
@@ -84,7 +94,11 @@ export function garageScreen(app, params = {}) {
               h('span', {}, `❤️ ${unit.maxHp}`), h('span', {}, `🛡️ ${unit.armor}`), h('span', {}, `👟 ${unit.move}`),
               h('span', {}, `🧗 ${unit.climb}`), h('span', {}, `🦘 ${unit.jump}`), h('span', { class: 'power' }, `⚡ ${powerRating(bp)}`)),
             h('div', { class: 'chips' }, unit.attacks.map((a) => h('span', { class: 'chip' }, `${a.icon} ${a.name}`))),
-            h('div', { class: 'combine-hint' }, `🤝 ${core} robot · combines with: ${partnersFor(core).join(', ')}`)))),
+            h('div', { class: 'combine-hint' },
+              h('div', {}, `🤝 ${core} robot · combines with: ${partnersFor(core).join(', ')}`),
+              h('small', {}, matches.length
+                ? `Your team: ${matches.join(', ')} — take them to Battle together and walk them side by side!`
+                : `None of your robots match yet. Build a ${partnersFor(core).join(' or ')} robot to combine!`))))),
     );
   }
   render();

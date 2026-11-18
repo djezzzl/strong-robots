@@ -2,7 +2,7 @@
 import { createRng } from '../core/rng.js';
 import { HEADS, ARMS, LEGS } from '../data/parts.js';
 import { buildUnit } from './robot.js';
-import { canMerge, mergeUnits, RECIPES } from './merge.js';
+import { canMerge, mergeUnits, recipeFor, RECIPES } from './merge.js';
 import { generateLevel, DIFFICULTY } from './level.js';
 import { reachable, pathTo, posKey, cellAt, setCell, isSolid, landingY, EMPTY, SPIKES, CRATE } from './terrain.js';
 import { targetsFor, stormVictims, rollDamage, dist, isDamaging } from './combat.js';
@@ -194,6 +194,15 @@ export function mergeOptions(state, id) {
   const unit = getUnit(state, id);
   if (!unit || unit.acted || unit.team !== state.team || state.winner) return [];
   return aliveUnits(state, unit.team).filter((o) => dist(o, unit) <= 1 && canMerge(unit, o)).map((o) => o.id);
+}
+
+// Every teammate this unit could combine with, near or far, so the UI can guide the player to them.
+export function combinePartners(state, id) {
+  const unit = getUnit(state, id);
+  if (!unit || unit.acted || unit.team !== state.team || state.winner) return [];
+  return aliveUnits(state, unit.team).filter((o) => canMerge(unit, o)).map((o) => ({
+    id: o.id, name: o.name, recipe: recipeFor([...unit.cores, ...o.cores]).name, near: dist(o, unit) <= 1,
+  }));
 }
 
 export function mergeRobots(state, id, partnerId) {
